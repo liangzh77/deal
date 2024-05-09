@@ -1,6 +1,7 @@
+import os, sys
+sys.path.append(os.getcwd())
 from core.stock_io import stock_io, IOSource
 from core.tool import *
-import os
 import numpy as np
 
 sio = stock_io(IOSource.Online)

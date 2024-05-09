@@ -3,7 +3,7 @@ import tushare as ts
 import numpy as np
 from core.tool import str2ts
 
-pro = ts.pro_api()
+pro = ts.pro_api(token='9796ac3418d3134c9f34853c110a5b393f0a98438978a48784a1c19e')
 
 def read_stock_online(ts_code, asset='E', start_date='20180101', end_date='20181011', freq='1min'):
     df = ts.pro_bar(ts_code=ts_code, adj='qfq', asset=asset, start_date=start_date, end_date=end_date, freq=freq)

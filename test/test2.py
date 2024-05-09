@@ -9,8 +9,8 @@ class StockHistoryData:
         self.params = {
             "symbol": self.stock_code,
             "scale": "5",  # 5分钟
-            "ma": "5,10,20,30",
-            "datalen": "1023"
+#            "ma": "5,10,20",
+            "datalen": "5000"
         }
 
     def fetch_data(self):

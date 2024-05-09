@@ -1,3 +1,5 @@
+import os, sys
+sys.path.append(os.getcwd())
 import cv2
 import numpy as np
 from core.stock_io import stock_io, IOSource
