@@ -1,37 +1,111 @@
- 
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
- 
 import requests
-import time
 import json
-import pandas as pd
- 
-def fenshishuju_dfcf(daima):
- 
-    if daima[:2] == "sh":
-        lsbl = '1.'+daima[2:]
-    else:
-        lsbl = '0.' + daima[2:]
-    wangzhi = "http://push2his.eastmoney.com/api/qt/stock/trends2/get?&fields1=f1%2Cf2%2Cf3%2Cf4%2Cf5%2Cf6%2Cf7%2Cf8%2Cf9" \
-              "%2Cf10%2Cf11%2Cf12%2Cf13&fields2=f51%2Cf52%2Cf53%2Cf54%2Cf55%2Cf56%2Cf57%2Cf58&" \
-              "ut=7eea3edcaed734bea9cbfc24409ed989&ndays=1&iscr=0&secid="+lsbl+ \
-              "&_=1643253749790"+str(time.time)
-    resp = requests.get(wangzhi, timeout=6)
-    # print (resp) #打印请求结果的状态码
-    data = json.loads(resp.text)
-    shuju = {'日期时间': [], '最新价': [], '均价': [], '成交额': []}
-    for k in data['data']['trends']:
-        lsbl = k.split(",")
-        shuju['日期时间'].append(lsbl[0])
-        shuju['最新价'].append(lsbl[2])
-        shuju['均价'].append(lsbl[-1])
-        shuju['成交额'].append(lsbl[-2])
-        
-    return shuju
- 
- 
-if __name__ == '__main__':
-    while 1:
-        fenshishuju_dfcf('sh603102')
-        time.sleep(3)
+import mysql.connector
+
+host = '127.0.0.1'
+user = 'root'
+password = 'chujiao'
+database = 'sys'
+
+class StockHistoryData:
+    def __init__(self, stock_code):
+        self.stock_code = stock_code
+        self.base_url = "http://money.finance.sina.com.cn/quotes_service/api/json_v2.php/CN_MarketData.getKLineData"
+        self.params = {
+            "symbol": self.stock_code,
+            "scale": "5",  # 5分钟
+#            "ma": "5,10,20",
+            "datalen": "5000"
+        }
+
+    def fetch_data(self, len):
+        self.params['datalen'] = len
+        response = requests.get(self.base_url, params=self.params)
+        data = json.loads(response.text)
+        return data
+
+
+def get_insert_sql_str(sets):
+    sets2 = sets.copy()
+    keys = ', '.join(sets2.keys())
+    values = ', '.join(f"'{v}'" for v in sets2.values())
+    sql = f"({keys}) VALUES ({values})"
+    return sql
+
+
+def get_cursor():
+    conn = mysql.connector.connect(
+        host=host,
+        user=user,
+        password=password,
+        database=database
+    )
+    cursor = conn.cursor()
+    return conn, cursor
+
+
+def release_cursor(conn, cursor):
+    conn.commit()
+    cursor.close()
+    conn.close()
+
+
+def execute_sql(sql):
+    while True:
+        try:
+            conn = mysql.connector.connect(
+                host=host,
+                user=user,
+                password=password,
+                database=database
+            )
+            cursor = conn.cursor()
+            cursor.execute(sql)
+            updated_rows = cursor.rowcount
+            conn.commit()
+            cursor.close()
+            conn.close()
+            return updated_rows
+
+        except Exception as e:
+            cursor.close()
+            conn.close()
+            raise ValueError(str(e))
+
+
+if __name__ == "__main__":
+    fn = 'settings/A股个股.txt'
+    with open(fn, 'r', encoding='utf-8') as f:
+        ls = f.readlines()
+    for l in ls[1:]:
+        ts_code,symbol,name,area,industry,list_date = l.strip().split(',')
+        c1, c2 = ts_code.split('.')
+        code = c2+c1
+        stock_data = StockHistoryData(code)
+        data = stock_data.fetch_data(5000)
+        conn, cursor = get_cursor()
+        sql = '''
+            CREATE TABLE zyx.`min5` (
+                `datetime` varchar(19) NOT NULL,
+                `price` float DEFAULT NULL,
+                `volume` float DEFAULT NULL,
+                PRIMARY KEY (`datetime`),
+                UNIQUE KEY `code` (`datetime`)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
+                '''
+        sql = sql.replace('min5', code)
+        cursor.execute(sql)
+        for d in data:
+            sets = {'datetime':d['day'], 'price':d['close'], 'volume':d['volume']}
+            insert_str = get_insert_sql_str(sets)
+            sql = f"INSERT INTO zyx.{code} {insert_str}"
+            cursor.execute(sql)
+        release_cursor(conn, cursor)
+
+
+if 0:
+    # 使用示例
+    stock_code = "sz000001"  # 平安银行
+    stock_data = StockHistoryData(stock_code)
+    stock_df = stock_data.fetch_data()
+    print(stock_df.head())
