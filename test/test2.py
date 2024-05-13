@@ -1,32 +1,34 @@
-import requests
-import json
-import pandas as pd
+import sys, os
+sys.path.append(os.getcwd())
+from mysql_db.mysql_tool import *
 
-class StockHistoryData:
-    def __init__(self, stock_code):
-        self.stock_code = stock_code
-        self.base_url = "http://money.finance.sina.com.cn/quotes_service/api/json_v2.php/CN_MarketData.getKLineData"
-        self.params = {
-            "symbol": self.stock_code,
-            "scale": "5",  # 5分钟
-#            "ma": "5,10,20",
-            "datalen": "5000"
-        }
 
-    def fetch_data(self):
-        response = requests.get(self.base_url, params=self.params)
-        data = json.loads(response.text)
-        return data
+sql = 'select * from zyx.sz000001'
+ret = query_sql(sql, logging=False)
+a=1
 
-    def parse_data(self):
-        data = self.fetch_data()
-        df = pd.DataFrame(data, columns=["day", "open", "high", "low", "close", "volume"])
-        df["day"] = pd.to_datetime(df["day"])
-        df = df.set_index("day")
-        return df
+class stock:
+    def __init__(self, code) -> None:
+        sql = 'select * from zyx.sz000001'
+        self.min5 = query_sql(sql, logging=False)
+        self.data = self._arange_data()
 
-# 使用示例
-stock_code = "sz000001"  # 平安银行
-stock_data = StockHistoryData(stock_code)
-stock_df = stock_data.parse_data()
-print(stock_df.head())
+
+    def _arange_data(self):
+        data = {'start_date':None,
+                'end_date':None,
+                'data':{'day':{},
+                        'min5':{}}
+                }
+        for d in self.min5:
+            dt, price, volume = d['datetime'], d['price'], d['volume']
+            date1, time1 = dt.split(' ')
+            if data.start_date is None:
+                data.start_date = date1
+            data.end_date = date1
+            
+
+
+    def _calc_daily(self):
+        for d in self.min5:
+            pass

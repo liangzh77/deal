@@ -1,6 +1,7 @@
-import requests
-import json
-import mysql.connector
+import requests, json, sys, os
+sys.path.append(os.getcwd())
+from mysql_db.mysql_tool import *
+
 
 host = '127.0.0.1'
 user = 'root'
@@ -25,54 +26,6 @@ class StockHistoryData:
         return data
 
 
-def get_insert_sql_str(sets):
-    sets2 = sets.copy()
-    keys = ', '.join(sets2.keys())
-    values = ', '.join(f"'{v}'" for v in sets2.values())
-    sql = f"({keys}) VALUES ({values})"
-    return sql
-
-
-def get_cursor():
-    conn = mysql.connector.connect(
-        host=host,
-        user=user,
-        password=password,
-        database=database
-    )
-    cursor = conn.cursor()
-    return conn, cursor
-
-
-def release_cursor(conn, cursor):
-    conn.commit()
-    cursor.close()
-    conn.close()
-
-
-def execute_sql(sql):
-    while True:
-        try:
-            conn = mysql.connector.connect(
-                host=host,
-                user=user,
-                password=password,
-                database=database
-            )
-            cursor = conn.cursor()
-            cursor.execute(sql)
-            updated_rows = cursor.rowcount
-            conn.commit()
-            cursor.close()
-            conn.close()
-            return updated_rows
-
-        except Exception as e:
-            cursor.close()
-            conn.close()
-            raise ValueError(str(e))
-
-
 if __name__ == "__main__":
     fn = 'settings/A股个股.txt'
     with open(fn, 'r', encoding='utf-8') as f:
@@ -81,11 +34,12 @@ if __name__ == "__main__":
         ts_code,symbol,name,area,industry,list_date = l.strip().split(',')
         c1, c2 = ts_code.split('.')
         code = c2+c1
+        print(f'working on {code}')
         stock_data = StockHistoryData(code)
-        data = stock_data.fetch_data(5000)
+        data = stock_data.fetch_data(500)
         conn, cursor = get_cursor()
         sql = '''
-            CREATE TABLE zyx.`min5` (
+            CREATE TABLE IF NOT EXISTS zyx.`min5` (
                 `datetime` varchar(19) NOT NULL,
                 `price` float DEFAULT NULL,
                 `volume` float DEFAULT NULL,
@@ -98,7 +52,7 @@ if __name__ == "__main__":
         for d in data:
             sets = {'datetime':d['day'], 'price':d['close'], 'volume':d['volume']}
             insert_str = get_insert_sql_str(sets)
-            sql = f"INSERT INTO zyx.{code} {insert_str}"
+            sql = f"INSERT IGNORE INTO zyx.{code} {insert_str}"
             cursor.execute(sql)
         release_cursor(conn, cursor)
 
