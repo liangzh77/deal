@@ -4,3 +4,5 @@ __pycache__
 orig_data
 result
 tmp
+data_old
+.idea

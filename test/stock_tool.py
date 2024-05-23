@@ -3,9 +3,6 @@ sys.path.append(os.getcwd())
 from mysql_db.mysql_tool import *
 
 
-#sql = 'select * from zyx.sz000001'
-#ret = query_sql(sql, logging=False)
-
 def init_chunk():
     c = {}
     c['timev'] = []
@@ -77,10 +74,7 @@ class Stocks:
     def __setitem__(self, code, stock):
         self.s[code] = stock
 
-
-load_from_file = False
-if __name__ == '__main__':
-    fn = 'settings/a股个股.txt'
+def load_codes_from_file(fn):
     with open(fn,'r',encoding='utf-8') as f:
         lines = f.readlines()
 
@@ -90,18 +84,9 @@ if __name__ == '__main__':
         t2 = t.split('.')
         code = t2[1]+t2[0]
         codes[code] = {'code':code,'name':name,'market':market,'industry':industry}
+    return codes
 
-    stocks = Stocks()
-    if 0:
-        for code in codes:
-            if load_from_file:
-                with open(f'data/{code}.pkl', 'rb') as f:
-                    stock = pickle.load(f)
-            else:
-                stock = Stock(codes[code])
-                with open(f'data/{code}.pkl', 'wb') as f:
-                    pickle.dump(stock, f)
-
+def filter_stocks(stocks, codes):
     selected = {}
     for code in codes:
         if code[2:4] in ['30','68']:
@@ -130,4 +115,30 @@ if __name__ == '__main__':
                     print(f"{code}, {datev}, {fenshi['timev'][j]}, {s.info['name']}, {day_amt}亿")
                     ttt = {'stock':s, 'date':datev, 'time':fenshi['timev'][j], 'name':s.info['name'], 'amount':day_amt}
                     selected[code] = ttt
+    return selected
+
+
+# 从缓存文件加载codes
+if 0:
+    codes = load_codes_from_file('settings/a股个股.txt')
+    for code in codes:
+        with open(f'data/{code}.pkl', 'rb') as f:
+            stock = pickle.load(f)
+
+# 从数据库加载codes，并写缓存文件
+if 0:
+    codes = load_codes_from_file('settings/a股个股.txt')
+    for code in codes:
+        stock = Stock(codes[code])
+        with open(f'data/{code}.pkl', 'wb') as f:
+            pickle.dump(stock, f)
+
+
+if __name__ == '__main__':
+    fn = 'settings/a股个股.txt'
+    codes = load_codes_from_file(fn)
+
+    stocks = Stocks()
+    codes2 = {key: codes[key] for key in list(codes.keys())[:100]}
+    selected = filter_stocks(stocks, codes2)
     a=1
