@@ -1,0 +1,5 @@
+{
+    "editor.fontSize":22,//字体大小
+    "window.zoomLevel":0.8,//菜单栏字体大小
+    "editor.mouseWheelZoom":true,//按住 citl 鼠标滚动放大缩小字体}
+}
