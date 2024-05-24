@@ -1,6 +1,10 @@
 import sys, os, pickle
-sys.path.append(os.getcwd())
+script_dir = os.path.split(os.path.abspath(__file__))[0]
+sys.path.append(script_dir)
+base_dir = os.path.split(script_dir)[0]
+sys.path.append(base_dir)
 from mysql_db.mysql_tool import *
+from stock_filter import *
 
 
 def init_chunk():
@@ -86,37 +90,6 @@ def load_codes_from_file(fn):
         codes[code] = {'code':code,'name':name,'market':market,'industry':industry}
     return codes
 
-def filter_stocks(stocks, codes):
-    selected = {}
-    for code in codes:
-        if code[2:4] in ['30','68']:
-            rg = 0.199
-        else:
-            rg = 0.099
-        s = stocks[code]
-        day = s.info['day']
-        closev = day['closev']
-        volume = day['volume']
-        amt = [x * y for x, y in zip(closev, volume)]
-        for i in range(5,len(amt)):
-            if amt[i]>np.mean(amt[i-5:i])*2:
-                datev = day['timev'][i]
-                fenshi = s.info['min5'][datev]
-                closev = fenshi['closev']
-                for j in range(1,len(closev)):
-                    pre = closev[max(0,j-10):j]
-                    if np.std(pre)>np.mean(pre)*0.01:
-                        continue
-                    if min(closev[j:])<day['closev'][i-1]*(1+rg):
-                        continue
-                    if np.mean(pre)>day['closev'][i-1]*(1+rg/2):
-                        continue
-                    day_amt = int(day['closev'][i]*day['volume'][i]/1e7)/10
-                    print(f"{code}, {datev}, {fenshi['timev'][j]}, {s.info['name']}, {day_amt}亿")
-                    ttt = {'stock':s, 'date':datev, 'time':fenshi['timev'][j], 'name':s.info['name'], 'amount':day_amt}
-                    selected[code] = ttt
-    return selected
-
 
 # 从缓存文件加载codes
 if 0:
@@ -140,5 +113,5 @@ if __name__ == '__main__':
 
     stocks = Stocks()
     codes2 = {key: codes[key] for key in list(codes.keys())[:100]}
-    selected = filter_stocks(stocks, codes2)
+    selected = filter_stock1(stocks, codes)
     a=1
