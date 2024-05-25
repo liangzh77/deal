@@ -106,6 +106,13 @@ if 0:
         with open(f'data/{code}.pkl', 'wb') as f:
             pickle.dump(stock, f)
 
+def temp_save_pkl(v):
+    with open(f'temp.pkl', 'wb') as f:
+        pickle.dump(v, f)
+
+def temp_load_pkl():
+    with open(f'temp.pkl', 'rb') as f:
+        return pickle.load(f)
 
 if __name__ == '__main__':
     fn = 'settings/a股个股.txt'
@@ -113,5 +120,8 @@ if __name__ == '__main__':
 
     stocks = Stocks()
     codes2 = {key: codes[key] for key in list(codes.keys())[:100]}
-    selected = filter_stock1(stocks, codes)
+#    selected = temp_load_pkl()
+    selected = filter_stock4(stocks, codes)
+    from stock_evaluate import *
+    eval2(selected)
     a=1
