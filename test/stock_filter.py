@@ -108,6 +108,15 @@ def filter_stock3(stocks, codes):
             selected[code] = ttt
     return selected
 
+def detect_shentao(closev, i, pre_start, pre_end):
+    start = max(0,i-pre_start)
+    end = max(0,i-pre_end)
+    n = 0
+    for ind in range(start, end):
+        if closev[ind]>closev[i]:
+            n+=1
+    return n
+
 # 深套，一横一竖涨停
 def filter_stock4(stocks, codes):
     selected = {}
@@ -123,7 +132,7 @@ def filter_stock4(stocks, codes):
         amt = [x * y for x, y in zip(closev, volume)]
         for i in range(10,len(amt)):
             # 深套
-            if closev[i-10]<closev[i]:
+            if detect_shentao(closev, i, 40, 10)<20:
                 continue
             # 当天量*2
             if amt[i]<np.mean(amt[i-5:i])*2 and amt[i]<amt[i-1]*2:
@@ -145,7 +154,7 @@ def filter_stock4(stocks, codes):
                 if min(fenshi_v[j:])<day['closev'][i-1]*(1+rg):
                     continue
                 # 前面不太低
-                if np.mean(pre)>day['closev'][i-1]*(1+rg*0.6):# and len(pre)>2:
+                if np.mean(pre)>day['closev'][i-1]*(1+rg*0.6) and len(pre)>2:
                     continue
                 day_amt = int(day['closev'][i]*volume[i]/1e7)/10
                 print(f"{code}, {datev}, {fenshi['timev'][j]}, {s.info['name']}, {day_amt}亿")
